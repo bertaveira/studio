@@ -228,13 +228,13 @@ function main() {
     registerRosPackageProtocolHandlers();
 
     // Check auto-update settings
-    const AutoUpdateEnable = getAppSetting<string>(AppSetting.AUTO_UPDATE) ?? true;
+    const autoUpdateEnable = getAppSetting<boolean>(AppSetting.AUTO_UPDATE) ?? true;
     // Only stable builds check for automatic updates
     if (process.env.NODE_ENV !== "production") {
       log.info("Automatic updates disabled (development environment)");
     } else if (/-(dev|nightly)/.test(pkgInfo.version)) {
       log.info("Automatic updates disabled (development version)");
-    } else if (AutoUpdateEnable) {
+    } else if (autoUpdateEnable) {
       autoUpdater.checkForUpdatesAndNotify().catch((err) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         if (isNetworkError(err)) {
