@@ -289,6 +289,9 @@ export default function Preferences(): React.ReactElement {
   const [telemetryEnabled, setTelemetryEnabled] = useAppConfigurationValue<boolean>(
     AppSetting.TELEMETRY_ENABLED,
   );
+  const [autoUpdateEnabled, setAutoUpdateEnabled] = useAppConfigurationValue<boolean>(
+    AppSetting.AUTO_UPDATE,
+  );
 
   return (
     <SidebarContent title="Preferences">
@@ -308,6 +311,11 @@ export default function Preferences(): React.ReactElement {
             <Stack.Item>
               <MessageFramerate />
             </Stack.Item>
+            <Checkbox
+              checked={autoUpdateEnabled ?? true}
+              onChange={(_event, checked) => void setAutoUpdateEnabled(checked)}
+              label="Auto-update Foxglove"
+            />
             {!isDesktopApp() && (
               <Stack.Item>
                 <LaunchDefault />
