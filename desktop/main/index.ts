@@ -23,7 +23,7 @@ import {
   registerRosPackageProtocolHandlers,
   registerRosPackageProtocolSchemes,
 } from "./rosPackageResources";
-import { getAppSetting } from "./settings";
+import { getAppSetting, setAppSetting } from "./settings";
 import { getTelemetrySettings } from "./telemetry";
 
 const log = Logger.getLogger(__filename);
@@ -228,13 +228,17 @@ function main() {
     registerRosPackageProtocolHandlers();
 
     // Check auto-update settings
-    const autoUpdateEnable = getAppSetting<boolean>(AppSetting.AUTO_UPDATE) ?? true;
+    const autoUpdateEnable = getAppSetting<boolean>(AppSetting.AUTO_UPDATE);
     // Only stable builds check for automatic updates
     if (process.env.NODE_ENV !== "production") {
       log.info("Automatic updates disabled (development environment)");
     } else if (/-(dev|nightly)/.test(pkgInfo.version)) {
       log.info("Automatic updates disabled (development version)");
+    } else if (autoUpdateEnable == undefined) {
+      setAppSetting(AppSetting.AUTO_UPDATE, true);
+      log.info("Not checking for updates due to being the first boot");
     } else if (autoUpdateEnable) {
+      log.info("Checking for updates");
       autoUpdater.checkForUpdatesAndNotify().catch((err) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         if (isNetworkError(err)) {
