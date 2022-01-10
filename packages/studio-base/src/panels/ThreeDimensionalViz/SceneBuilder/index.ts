@@ -14,7 +14,7 @@ import _, { flatten, groupBy, isEqual, keyBy, mapValues, some, xor } from "lodas
 import shallowequal from "shallowequal";
 
 import Log from "@foxglove/log";
-import { Time, fromSec } from "@foxglove/rostime";
+import { Time, add as addTime, fromSec, isGreaterThan, isLessThan, toSec } from "@foxglove/rostime";
 import {
   InteractionData,
   Interactive,
@@ -23,8 +23,8 @@ import MessageCollector from "@foxglove/studio-base/panels/ThreeDimensionalViz/S
 import { MarkerMatcher } from "@foxglove/studio-base/panels/ThreeDimensionalViz/ThreeDimensionalVizContext";
 import VelodyneCloudConverter from "@foxglove/studio-base/panels/ThreeDimensionalViz/VelodyneCloudConverter";
 import {
-  CoordinateFrame,
-  TransformTree,
+  IImmutableCoordinateFrame,
+  IImmutableTransformTree,
 } from "@foxglove/studio-base/panels/ThreeDimensionalViz/transforms";
 import {
   MarkerProvider,
@@ -97,7 +97,7 @@ type MarkerMatchersByTopic = {
 const missingTransformMessage = (
   renderFrameId: string,
   error: ErrorDetails,
-  transforms: TransformTree,
+  transforms: IImmutableTransformTree,
 ): string => {
   if (error.frameIds.size === 0) {
     throw new Error(`Missing transform error has no frameIds`);
@@ -113,7 +113,7 @@ const missingTransformMessage = (
 
 export function getSceneErrorsByTopic(
   sceneErrors: SceneErrors,
-  transforms: TransformTree,
+  transforms: IImmutableTransformTree,
 ): {
   [topicName: string]: string[];
 } {
@@ -176,9 +176,9 @@ export function filterOutSupersededMessages<T extends Pick<MessageEvent<unknown>
 
 function computeMarkerPose(
   marker: Marker,
-  transforms: TransformTree,
-  renderFrame: CoordinateFrame,
-  fixedFrame: CoordinateFrame,
+  transforms: IImmutableTransformTree,
+  renderFrame: IImmutableCoordinateFrame,
+  fixedFrame: IImmutableCoordinateFrame,
   currentTime: Time,
 ): Pose | undefined {
   const srcFrame = transforms.frame(marker.header.frame_id);
@@ -222,7 +222,7 @@ export default class SceneBuilder implements MarkerProvider {
   collectors: {
     [key: string]: MessageCollector;
   } = {};
-  private _transforms?: TransformTree;
+  private _transforms?: IImmutableTransformTree;
   private _missingTfFrameIds = new Set<string>();
   private _clock?: Time;
   private _playerId?: string;
@@ -568,6 +568,13 @@ export default class SceneBuilder implements MarkerProvider {
     const name = `${topic}/${type}`;
 
     const { header, info, data } = message;
+    if (info.width * info.height !== data.length) {
+      this._setTopicError(
+        topic,
+        `OccupancyGrid data length (${data.length}) does not match width*height (${info.width}x${info.height}).`,
+      );
+      return;
+    }
     const mappedMessage = {
       header: {
         frame_id: header.frame_id,
@@ -839,6 +846,19 @@ export default class SceneBuilder implements MarkerProvider {
           if (!this.namespaceIsEnabled(topic.name, marker.ns)) {
             continue;
           }
+        }
+
+        // If this marker's header.stamp is in the future, don't render it
+        if (isGreaterThan(marker.header.stamp, time)) {
+          continue;
+        }
+        // If this marker has an expired lifetime, don't render it
+        if (
+          marker.lifetime &&
+          toSec(marker.lifetime) > 0 &&
+          isLessThan(addTime(marker.header.stamp, marker.lifetime), time)
+        ) {
+          continue;
         }
 
         const pose = computeMarkerPose(marker, transforms, renderFrame, fixedFrame, time);

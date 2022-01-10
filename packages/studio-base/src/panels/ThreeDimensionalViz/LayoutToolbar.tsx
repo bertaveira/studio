@@ -20,6 +20,7 @@ import Crosshair from "@foxglove/studio-base/panels/ThreeDimensionalViz/Crosshai
 import FollowTFControl from "@foxglove/studio-base/panels/ThreeDimensionalViz/FollowTFControl";
 import Interactions from "@foxglove/studio-base/panels/ThreeDimensionalViz/Interactions";
 import { TabType } from "@foxglove/studio-base/panels/ThreeDimensionalViz/Interactions/Interactions";
+import { LayoutToolbarSharedProps } from "@foxglove/studio-base/panels/ThreeDimensionalViz/Layout";
 import MainToolbar from "@foxglove/studio-base/panels/ThreeDimensionalViz/MainToolbar";
 import MeasureMarker from "@foxglove/studio-base/panels/ThreeDimensionalViz/MeasureMarker";
 import MeasuringTool, {
@@ -28,7 +29,6 @@ import MeasuringTool, {
 import SearchText, {
   SearchTextProps,
 } from "@foxglove/studio-base/panels/ThreeDimensionalViz/SearchText";
-import { LayoutToolbarSharedProps } from "@foxglove/studio-base/panels/ThreeDimensionalViz/TopicTree/Layout";
 import { fonts } from "@foxglove/studio-base/util/sharedStyleConstants";
 
 type Props = LayoutToolbarSharedProps &
@@ -78,7 +78,6 @@ function LayoutToolbar({
   setSearchTextMatches,
   setSelectedMatchIndex,
   showCrosshair = false,
-  targetPose,
   toggleSearchTextOpen,
   transforms,
   currentTime,
@@ -158,7 +157,6 @@ function LayoutToolbar({
         />
         <CameraInfo
           cameraState={cameraState}
-          targetPose={targetPose}
           followMode={followMode}
           followTf={followTf}
           isPlaying={isPlaying}

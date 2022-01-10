@@ -4,6 +4,7 @@
 
 import { quat, vec3 } from "gl-matrix";
 
+import { DEFAULT_CAMERA_STATE } from "@foxglove/regl-worldview";
 import { RosMsgDefinition } from "@foxglove/rosmsg";
 import { fromSec, Time } from "@foxglove/rostime";
 import { MessageEvent, Topic } from "@foxglove/studio";
@@ -50,12 +51,16 @@ const testColors = {
 };
 
 function makeColor(hex: string, alpha?: number) {
-  const color = hexToColorObj(hex, alpha);
-  if (alpha != undefined) {
-    // Mutate the otherwise readonly Color object
-    (color as { a: number }).a = alpha;
-  }
-  return color;
+  return hexToColorObj(hex, alpha);
+}
+
+function rgba(r: number, g: number, b: number, a: number) {
+  return (
+    (Math.trunc(r * 255) << 24) |
+    (Math.trunc(g * 255) << 16) |
+    (Math.trunc(b * 255) << 8) |
+    Math.trunc(a * 255)
+  );
 }
 
 type PassFailMarker = CubeMarker;
@@ -289,14 +294,45 @@ export function CustomBackgroundColor(): JSX.Element {
   );
 }
 
+Markers.parameters = { colorScheme: "dark", chromatic: { delay: 100 } };
 export function Markers(): JSX.Element {
-  const topics: Topic[] = [{ name: "/markers", datatype: "visualization_msgs/Marker" }];
+  const topics: Topic[] = [
+    { name: "/tf", datatype: "geometry_msgs/TransformStamped" },
+    { name: "/markers", datatype: "visualization_msgs/Marker" },
+  ];
+
+  const tf1: MessageEvent<TF> = {
+    topic: "/tf",
+    receiveTime: { sec: 10, nsec: 0 },
+    message: {
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "map" },
+      child_frame_id: "base_link",
+      transform: {
+        translation: { x: 1e7, y: 0, z: 0 },
+        rotation: QUAT_IDENTITY,
+      },
+    },
+    sizeInBytes: 0,
+  };
+  const tf2: MessageEvent<TF> = {
+    topic: "/tf",
+    receiveTime: { sec: 10, nsec: 0 },
+    message: {
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "base_link" },
+      child_frame_id: "sensor",
+      transform: {
+        translation: { x: 0, y: 1, z: 0 },
+        rotation: QUAT_IDENTITY,
+      },
+    },
+    sizeInBytes: 0,
+  };
 
   const arrow: MessageEvent<ArrowMarker> = {
     topic: "/markers",
     receiveTime: { sec: 10, nsec: 0 },
     message: {
-      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "" },
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "sensor" },
       id: `arrow`,
       ns: "",
       type: 0,
@@ -317,7 +353,7 @@ export function Markers(): JSX.Element {
     topic: "/markers",
     receiveTime: { sec: 10, nsec: 0 },
     message: {
-      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "" },
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "sensor" },
       id: `cube`,
       ns: "",
       type: 1,
@@ -338,7 +374,7 @@ export function Markers(): JSX.Element {
     topic: "/markers",
     receiveTime: { sec: 10, nsec: 0 },
     message: {
-      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "" },
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "sensor" },
       id: `sphere`,
       ns: "",
       type: 2,
@@ -359,7 +395,7 @@ export function Markers(): JSX.Element {
     topic: "/markers",
     receiveTime: { sec: 10, nsec: 0 },
     message: {
-      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "" },
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "sensor" },
       id: `cylinder`,
       ns: "",
       type: 3,
@@ -380,7 +416,7 @@ export function Markers(): JSX.Element {
     topic: "/markers",
     receiveTime: { sec: 10, nsec: 0 },
     message: {
-      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "" },
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "sensor" },
       id: `lineStrip`,
       ns: "",
       type: 4,
@@ -413,7 +449,7 @@ export function Markers(): JSX.Element {
     topic: "/markers",
     receiveTime: { sec: 10, nsec: 0 },
     message: {
-      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "" },
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "sensor" },
       id: `lineList`,
       ns: "",
       type: 5,
@@ -450,7 +486,7 @@ export function Markers(): JSX.Element {
     topic: "/markers",
     receiveTime: { sec: 10, nsec: 0 },
     message: {
-      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "" },
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "sensor" },
       id: `cubeList`,
       ns: "",
       type: 6,
@@ -477,7 +513,7 @@ export function Markers(): JSX.Element {
     topic: "/markers",
     receiveTime: { sec: 10, nsec: 0 },
     message: {
-      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "" },
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "sensor" },
       id: `sphereList`,
       ns: "",
       type: 7,
@@ -504,7 +540,7 @@ export function Markers(): JSX.Element {
     topic: "/markers",
     receiveTime: { sec: 10, nsec: 0 },
     message: {
-      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "" },
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "sensor" },
       id: `points`,
       ns: "",
       type: 8,
@@ -532,7 +568,7 @@ export function Markers(): JSX.Element {
     topic: "/markers",
     receiveTime: { sec: 10, nsec: 0 },
     message: {
-      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "" },
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "sensor" },
       id: `text`,
       ns: "",
       type: 9,
@@ -554,7 +590,7 @@ export function Markers(): JSX.Element {
     topic: "/markers",
     receiveTime: { sec: 10, nsec: 0 },
     message: {
-      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "" },
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "sensor" },
       id: `mesh`,
       ns: "",
       type: 10,
@@ -577,6 +613,7 @@ export function Markers(): JSX.Element {
     datatypes,
     topics,
     frame: {
+      "/tf": [tf1, tf2],
       "/markers": [
         arrow,
         cube,
@@ -602,14 +639,14 @@ export function Markers(): JSX.Element {
       <ThreeDimensionalViz
         overrideConfig={{
           ...ThreeDimensionalViz.defaultConfig,
-          checkedKeys: ["name:Topics", "t:/markers", `t:${FOXGLOVE_GRID_TOPIC}`],
-          expandedKeys: ["name:Topics", "t:/markers", `t:${FOXGLOVE_GRID_TOPIC}`],
-          followTf: "",
+          checkedKeys: ["name:Topics", "t:/markers", "t:/tf", `t:${FOXGLOVE_GRID_TOPIC}`],
+          expandedKeys: ["name:Topics", "t:/markers", "t:/tf", `t:${FOXGLOVE_GRID_TOPIC}`],
+          followTf: "base_link",
           cameraState: {
             distance: 5.5,
             perspective: true,
             phi: 0.5,
-            targetOffset: [0, 0, 0],
+            targetOffset: [-0.5, 0.75, 0],
             thetaOffset: -0.25,
             fovy: 0.75,
             near: 0.01,
@@ -623,6 +660,147 @@ export function Markers(): JSX.Element {
   );
 }
 
+ArrowMarkers.parameters = { colorScheme: "dark" };
+export function ArrowMarkers(): JSX.Element {
+  const topics: Topic[] = [
+    { name: "/tf", datatype: "geometry_msgs/TransformStamped" },
+    { name: "/arrows", datatype: "visualization_msgs/Marker" },
+  ];
+
+  const tf1: MessageEvent<TF> = {
+    topic: "/tf",
+    receiveTime: { sec: 10, nsec: 0 },
+    message: {
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "map" },
+      child_frame_id: "base_link",
+      transform: {
+        translation: { x: 1e7, y: 0, z: 0 },
+        rotation: QUAT_IDENTITY,
+      },
+    },
+    sizeInBytes: 0,
+  };
+  const tf2: MessageEvent<TF> = {
+    topic: "/tf",
+    receiveTime: { sec: 10, nsec: 0 },
+    message: {
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "base_link" },
+      child_frame_id: "sensor",
+      transform: {
+        translation: { x: 0, y: 0, z: 1 },
+        rotation: QUAT_IDENTITY,
+      },
+    },
+    sizeInBytes: 0,
+  };
+
+  const arrow1: MessageEvent<ArrowMarker> = {
+    topic: "/arrows",
+    receiveTime: { sec: 10, nsec: 0 },
+    message: {
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "sensor" },
+      id: `arrow1`,
+      ns: "",
+      type: 0,
+      action: 0,
+      frame_locked: false,
+      pose: {
+        position: { x: -1, y: 1, z: -1 },
+        orientation: { x: 0, y: -Math.SQRT1_2, z: 0, w: Math.SQRT1_2 },
+      },
+      scale: { x: 0.5, y: 0.1, z: 0.1 },
+      color: makeColor("#f44336", 0.5),
+      lifetime: { sec: 0, nsec: 0 },
+    },
+    sizeInBytes: 0,
+  };
+
+  const arrow2: MessageEvent<ArrowMarker> = {
+    topic: "/arrows",
+    receiveTime: { sec: 10, nsec: 0 },
+    message: {
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "sensor" },
+      id: `arrow2`,
+      ns: "",
+      type: 0,
+      action: 0,
+      frame_locked: false,
+      pose: {
+        position: { x: 0, y: 1, z: -1 },
+        orientation: { x: 0, y: -Math.SQRT1_2, z: 0, w: Math.SQRT1_2 },
+      },
+      scale: { x: 1, y: 0.05, z: 0.05 },
+      color: makeColor("#4caf50", 0.5),
+      lifetime: { sec: 0, nsec: 0 },
+    },
+    sizeInBytes: 0,
+  };
+
+  const arrow3: MessageEvent<ArrowMarker> = {
+    topic: "/arrows",
+    receiveTime: { sec: 10, nsec: 0 },
+    message: {
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "sensor" },
+      id: `arrow3`,
+      ns: "",
+      type: 0,
+      action: 0,
+      frame_locked: false,
+      pose: {
+        position: { x: 1, y: 1, z: -1 },
+        orientation: QUAT_IDENTITY,
+      },
+      scale: { x: 0.05, y: 0.05, z: 1 },
+      points: [
+        { x: 0, y: 0, z: 0 },
+        { x: 0, y: 0, z: 1 },
+      ],
+      color: makeColor("#2196f3", 0.5),
+      lifetime: { sec: 0, nsec: 0 },
+    },
+    sizeInBytes: 0,
+  };
+
+  const fixture = useDelayedFixture({
+    datatypes,
+    topics,
+    frame: {
+      "/tf": [tf1, tf2],
+      "/arrows": [arrow1, arrow2, arrow3],
+    },
+    capabilities: [],
+    activeData: {
+      currentTime: { sec: 0, nsec: 0 },
+    },
+  });
+
+  return (
+    <PanelSetup fixture={fixture}>
+      <ThreeDimensionalViz
+        overrideConfig={{
+          ...ThreeDimensionalViz.defaultConfig,
+          checkedKeys: ["name:Topics", "t:/arrows", "t:/tf", `t:${FOXGLOVE_GRID_TOPIC}`],
+          expandedKeys: ["name:Topics", "t:/arrows", "t:/tf", `t:${FOXGLOVE_GRID_TOPIC}`],
+          followTf: "base_link",
+          cameraState: {
+            distance: 4,
+            perspective: true,
+            phi: 0.83,
+            targetOffset: [-0.094, 0.85, 0],
+            thetaOffset: -0.29,
+            fovy: 0.75,
+            near: 0.01,
+            far: 5000,
+            target: [0, 0, 0],
+            targetOrientation: [0, 0, 0, 1],
+          },
+        }}
+      />
+    </PanelSetup>
+  );
+}
+
+TransformInterpolation.parameters = { colorScheme: "dark" };
 export function TransformInterpolation(): JSX.Element {
   const topics: Topic[] = [
     { name: "/markers", datatype: "visualization_msgs/Marker" },
@@ -715,6 +893,7 @@ export function TransformInterpolation(): JSX.Element {
   );
 }
 
+MarkerLifetimes.parameters = { colorScheme: "dark" };
 export function MarkerLifetimes(): JSX.Element {
   const topics: Topic[] = [
     { name: "/markers", datatype: "visualization_msgs/Marker" },
@@ -843,6 +1022,171 @@ export function MarkerLifetimes(): JSX.Element {
   );
 }
 
+Marker_PointCloud2_Alignment.parameters = { colorScheme: "dark" };
+export function Marker_PointCloud2_Alignment(): JSX.Element {
+  const topics: Topic[] = [
+    { name: "/markers", datatype: "visualization_msgs/Marker" },
+    { name: "/pointcloud", datatype: "sensor_msgs/PointCloud2" },
+    { name: "/tf", datatype: "geometry_msgs/TransformStamped" },
+  ];
+  const tf1: MessageEvent<TF> = {
+    topic: "/tf",
+    receiveTime: { sec: 10, nsec: 0 },
+    message: {
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "map" },
+      child_frame_id: "base_link",
+      transform: {
+        translation: { x: 1e7, y: 0, z: 0 },
+        rotation: QUAT_IDENTITY,
+      },
+    },
+    sizeInBytes: 0,
+  };
+  const tf2: MessageEvent<TF> = {
+    topic: "/tf",
+    receiveTime: { sec: 10, nsec: 0 },
+    message: {
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "base_link" },
+      child_frame_id: "sensor",
+      transform: {
+        translation: { x: 1.482, y: 0, z: 1.7861 },
+        rotation: { x: 0.010471, y: 0.008726, z: -0.000091, w: 0.999907 },
+      },
+    },
+    sizeInBytes: 0,
+  };
+
+  const points: MessageEvent<PointsMarker> = {
+    topic: "/markers",
+    receiveTime: { sec: 10, nsec: 0 },
+    message: {
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "sensor" },
+      id: `points`,
+      ns: "",
+      type: 8,
+      action: 0,
+      frame_locked: false,
+      pose: {
+        position: VEC3_ZERO,
+        orientation: QUAT_IDENTITY,
+      },
+      scale: { x: 0.017, y: 0.017, z: 0.017 },
+      color: makeColor("#3f51b5", 0.25),
+
+      points: [
+        { x: 0, y: 0.25, z: 0 },
+        { x: 0.25, y: -0.25, z: 0 },
+        { x: -0.25, y: -0.25, z: 0 },
+      ],
+      colors: [makeColor("#f44336"), makeColor("#4caf50"), makeColor("#2196f3")],
+      lifetime: { sec: 0, nsec: 0 },
+    },
+    sizeInBytes: 0,
+  };
+
+  function writePoint(
+    view: DataView,
+    i: number,
+    x: number,
+    y: number,
+    z: number,
+    colorHex: string,
+  ) {
+    const offset = i * 16;
+    const c = makeColor(colorHex);
+    view.setFloat32(offset + 0, x, true);
+    view.setFloat32(offset + 4, y, true);
+    view.setFloat32(offset + 8, z, true);
+    view.setUint32(offset + 12, rgba(c.r, c.g, c.b, c.a), true);
+  }
+
+  const data = new Uint8Array(3 * 16);
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  writePoint(view, 0, 0, 0.25, 0, "#f44336");
+  writePoint(view, 1, 0.25, -0.25, 0, "#4caf50");
+  writePoint(view, 2, -0.25, -0.25, 0, "#2196f3");
+
+  const pointCloud: MessageEvent<PointCloud2> = {
+    topic: "/pointcloud",
+    receiveTime: { sec: 10, nsec: 0 },
+    message: {
+      type: 102,
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "sensor" },
+      height: 1,
+      width: 3,
+      fields: [
+        { name: "x", offset: 0, datatype: 7, count: 1 },
+        { name: "y", offset: 4, datatype: 7, count: 1 },
+        { name: "z", offset: 8, datatype: 7, count: 1 },
+        { name: "rgba", offset: 12, datatype: 6, count: 1 },
+      ],
+      is_bigendian: false,
+      point_step: 16,
+      row_step: 3 * 16,
+      data,
+      is_dense: 1,
+    },
+    sizeInBytes: 0,
+  };
+
+  const fixture = useDelayedFixture({
+    datatypes,
+    topics,
+    frame: {
+      "/markers": [points],
+      "/pointcloud": [pointCloud],
+      "/tf": [tf1, tf2],
+    },
+    capabilities: [],
+    activeData: {
+      currentTime: { sec: 0, nsec: 0 },
+    },
+  });
+
+  return (
+    <PanelSetup fixture={fixture}>
+      <ThreeDimensionalViz
+        overrideConfig={{
+          ...ThreeDimensionalViz.defaultConfig,
+          checkedKeys: [
+            "name:Topics",
+            "t:/tf",
+            "t:/markers",
+            "t:/pointcloud",
+            `t:${FOXGLOVE_GRID_TOPIC}`,
+          ],
+          expandedKeys: [
+            "name:Topics",
+            "t:/tf",
+            "t:/markers",
+            "t:/pointcloud",
+            `t:${FOXGLOVE_GRID_TOPIC}`,
+          ],
+          settingsByKey: {
+            "t:/pointcloud": {
+              pointSize: 30,
+            },
+          },
+          followTf: "base_link",
+          cameraState: {
+            distance: 4,
+            perspective: true,
+            phi: 1,
+            targetOffset: [-0.22, 2.07, 0],
+            thetaOffset: -0.65,
+            fovy: 0.75,
+            near: 0.01,
+            far: 5000,
+            target: [0, 0, 0],
+            targetOrientation: [0, 0, 0, 1],
+          },
+        }}
+      />
+    </PanelSetup>
+  );
+}
+
+GeometryMsgs_Polygon.parameters = { colorScheme: "dark" };
 export function GeometryMsgs_Polygon(): JSX.Element {
   const topics: Topic[] = [
     { name: "/polygon", datatype: "geometry_msgs/PolygonStamped" },
@@ -930,6 +1274,7 @@ export function GeometryMsgs_Polygon(): JSX.Element {
   );
 }
 
+NavMsgs_Path.parameters = { colorScheme: "dark" };
 export function NavMsgs_Path(): JSX.Element {
   const topics: Topic[] = [
     { name: "/baselink_path", datatype: "nav_msgs/Path" },
@@ -1065,6 +1410,7 @@ export function NavMsgs_Path(): JSX.Element {
   );
 }
 
+SensorMsgs_LaserScan.parameters = { colorScheme: "dark" };
 export function SensorMsgs_LaserScan(): JSX.Element {
   const topics: Topic[] = [
     { name: "/laserscan", datatype: "sensor_msgs/LaserScan" },
@@ -1154,6 +1500,7 @@ export function SensorMsgs_LaserScan(): JSX.Element {
   );
 }
 
+SensorMsgs_PointCloud2_RGBA.parameters = { colorScheme: "dark" };
 export function SensorMsgs_PointCloud2_RGBA(): JSX.Element {
   const topics: Topic[] = [
     { name: "/pointcloud", datatype: "sensor_msgs/PointCloud2" },
@@ -1192,15 +1539,6 @@ export function SensorMsgs_PointCloud2_RGBA(): JSX.Element {
     return (x / 128 - 0.5) ** 2 + (y / 128 - 0.5) ** 2;
   }
 
-  function rgba(r: number, g: number, b: number, a: number) {
-    return (
-      (Math.trunc(r * 255) << 24) |
-      (Math.trunc(g * 255) << 16) |
-      (Math.trunc(b * 255) << 8) |
-      Math.trunc(a * 255)
-    );
-  }
-
   function jet(x: number): number {
     const i = Math.trunc(x * 255);
     const r = Math.max(0, Math.min(255, 4 * (i - 96), 255 - 4 * (i - 224)));
@@ -1217,7 +1555,7 @@ export function SensorMsgs_PointCloud2_RGBA(): JSX.Element {
       view.setFloat32(i + 0, x * SCALE - 5, true);
       view.setFloat32(i + 4, y * SCALE - 5, true);
       view.setFloat32(i + 8, f(x, y) * 5, true);
-      view.setUint32(i + 12, jet(f(x, y) * 2), false);
+      view.setUint32(i + 12, jet(f(x, y) * 2), true);
     }
   }
 
@@ -1283,6 +1621,7 @@ export function SensorMsgs_PointCloud2_RGBA(): JSX.Element {
   );
 }
 
+SensorMsgs_PointCloud2_Intensity.parameters = { colorScheme: "dark" };
 export function SensorMsgs_PointCloud2_Intensity(): JSX.Element {
   const topics: Topic[] = [
     { name: "/pointcloud", datatype: "sensor_msgs/PointCloud2" },
@@ -1454,6 +1793,7 @@ export function SensorMsgs_PointCloud2_Intensity(): JSX.Element {
   );
 }
 
+LargeTransform.parameters = { colorScheme: "dark" };
 export function LargeTransform(): JSX.Element {
   const topics: Topic[] = [
     { name: "/markers", datatype: "visualization_msgs/Marker" },
@@ -1549,12 +1889,63 @@ export function LargeTransform(): JSX.Element {
   );
 }
 
-GeometryMsgs_Polygon.parameters = { colorScheme: "dark" };
-LargeTransform.parameters = { colorScheme: "dark" };
-MarkerLifetimes.parameters = { colorScheme: "dark" };
-Markers.parameters = { colorScheme: "dark" };
-NavMsgs_Path.parameters = { colorScheme: "dark" };
-SensorMsgs_LaserScan.parameters = { colorScheme: "dark" };
-SensorMsgs_PointCloud2_Intensity.parameters = { colorScheme: "dark" };
-SensorMsgs_PointCloud2_RGBA.parameters = { colorScheme: "dark" };
-TransformInterpolation.parameters = { colorScheme: "dark" };
+STLMeshMarkers.parameters = { colorScheme: "dark" };
+export function STLMeshMarkers(): JSX.Element {
+  const topics: Topic[] = [{ name: "/markers", datatype: "visualization_msgs/Marker" }];
+
+  const mesh: MessageEvent<MeshMarker> = {
+    topic: "/markers",
+    receiveTime: { sec: 10, nsec: 0 },
+    message: {
+      header: { seq: 0, stamp: { sec: 0, nsec: 0 }, frame_id: "" },
+      id: `mesh`,
+      ns: "",
+      type: 10,
+      action: 0,
+      frame_locked: false,
+      pose: {
+        position: { x: 0, y: -1, z: 0 },
+        orientation: { x: 0, y: 0, z: 0, w: 1 },
+      },
+      scale: { x: 0.5, y: 0.5, z: 0.5 },
+      color: makeColor("#8bc34a", 0.5),
+      mesh_resource: encodeURI(`data:model/stl;utf8,solid AssimpScene
+  facet normal 0 0 -1 outer loop vertex -0.5 -0.5 -0.5 vertex -0.5 0.5 -0.5 vertex 0.5 0.5 -0.5 endloop endfacet
+  facet normal 0 0 -1 outer loop vertex 0.5 0.5 -0.5 vertex 0.5 -0.5 -0.5 vertex -0.5 -0.5 -0.5 endloop endfacet
+  facet normal 0 0 1 outer loop vertex 0.5 -0.5 0.5 vertex 0.5 0.5 0.5 vertex -0.5 0.5 0.5 endloop endfacet
+  facet normal 0 0 1 outer loop vertex -0.5 0.5 0.5 vertex -0.5 -0.5 0.5 vertex 0.5 -0.5 0.5 endloop endfacet
+  facet normal 0 1 0 outer loop vertex -0.5 0.5 0.5 vertex 0.5 0.5 0.5 vertex 0.5 0.5 -0.5 endloop endfacet
+  facet normal 0 1 0 outer loop vertex 0.5 0.5 -0.5 vertex -0.5 0.5 -0.5 vertex -0.5 0.5 0.5 endloop endfacet
+  facet normal 1 0 0 outer loop vertex 0.5 0.5 0.5 vertex 0.5 -0.5 0.5 vertex 0.5 -0.5 -0.5 endloop endfacet
+  facet normal 1 0 0 outer loop vertex 0.5 -0.5 -0.5 vertex 0.5 0.5 -0.5 vertex 0.5 0.5 0.5 endloop endfacet
+  facet normal 0 -1 0 outer loop vertex 0.5 -0.5 0.5 vertex -0.5 -0.5 0.5 vertex -0.5 -0.5 -0.5 endloop endfacet
+  facet normal 0 -1 0 outer loop vertex -0.5 -0.5 -0.5 vertex 0.5 -0.5 -0.5 vertex 0.5 -0.5 0.5 endloop endfacet
+  facet normal -1 0 0 outer loop vertex -0.5 -0.5 0.5 vertex -0.5 0.5 0.5 vertex -0.5 0.5 -0.5 endloop endfacet
+  facet normal -1 0 0 outer loop vertex -0.5 0.5 -0.5 vertex -0.5 -0.5 -0.5 vertex -0.5 -0.5 0.5 endloop endfacet
+endsolid AssimpScene`),
+      mesh_use_embedded_materials: true,
+      lifetime: { sec: 0, nsec: 0 },
+    },
+    sizeInBytes: 0,
+  };
+
+  const fixture = useDelayedFixture({
+    datatypes,
+    topics,
+    frame: { "/markers": [mesh] },
+    capabilities: [],
+    activeData: { currentTime: { sec: 0, nsec: 0 } },
+  });
+
+  return (
+    <PanelSetup fixture={fixture}>
+      <ThreeDimensionalViz
+        overrideConfig={{
+          ...ThreeDimensionalViz.defaultConfig,
+          checkedKeys: ["name:Topics", "t:/markers", `t:${FOXGLOVE_GRID_TOPIC}`],
+          cameraState: { ...DEFAULT_CAMERA_STATE, distance: 5, thetaOffset: 1 },
+        }}
+      />
+    </PanelSetup>
+  );
+}

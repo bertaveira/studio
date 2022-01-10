@@ -63,14 +63,13 @@ import {
   TRANSFORM_TOPIC,
 } from "@foxglove/studio-base/panels/ThreeDimensionalViz/constants";
 import {
-  TargetPose,
   getInteractionData,
   getObject,
   getUpdatedGlobalVariablesBySelectedObject,
 } from "@foxglove/studio-base/panels/ThreeDimensionalViz/threeDimensionalVizUtils";
 import {
-  CoordinateFrame,
-  TransformTree,
+  IImmutableCoordinateFrame,
+  IImmutableTransformTree,
 } from "@foxglove/studio-base/panels/ThreeDimensionalViz/transforms";
 import {
   FollowMode,
@@ -97,13 +96,12 @@ export type LayoutToolbarSharedProps = {
   onCameraStateChange: (arg0: CameraState) => void;
   onFollowChange: (followTf?: string, followMode?: FollowMode) => void;
   saveConfig: Save3DConfig;
-  targetPose?: TargetPose;
-  transforms: TransformTree;
+  transforms: IImmutableTransformTree;
   isPlaying?: boolean;
 };
 
 export type LayoutTopicSettingsSharedProps = {
-  transforms: TransformTree;
+  transforms: IImmutableTransformTree;
   topics: readonly Topic[];
   saveConfig: Save3DConfig;
 };
@@ -111,14 +109,15 @@ export type LayoutTopicSettingsSharedProps = {
 type Props = LayoutToolbarSharedProps &
   LayoutTopicSettingsSharedProps & {
     children?: React.ReactNode;
-    renderFrame: CoordinateFrame;
-    fixedFrame: CoordinateFrame;
+    renderFrame: IImmutableCoordinateFrame;
+    fixedFrame: IImmutableCoordinateFrame;
     currentTime: Time;
     resetFrame: boolean;
     frame: Frame;
     helpContent: React.ReactNode | string;
     isPlaying?: boolean;
     config: ThreeDimensionalVizConfig;
+    urdfBuilder: UrdfBuilder;
     saveConfig: Save3DConfig;
     setSubscriptions: (subscriptions: string[]) => void;
     topics: readonly Topic[];
@@ -218,9 +217,9 @@ export default function Layout({
   onFollowChange,
   saveConfig,
   topics,
-  targetPose,
   transforms,
   setSubscriptions,
+  urdfBuilder,
   config: {
     autoTextBackgroundColor = false,
     checkedKeys,
@@ -277,13 +276,11 @@ export default function Layout({
 
   const isDrawing = useMemo(() => measureInfo.measureState !== "idle", [measureInfo.measureState]);
 
-  // initialize the GridBuilder, SceneBuilder, and TransformsBuilder
-  const { gridBuilder, sceneBuilder, transformsBuilder, urdfBuilder } = useMemo(
+  const { gridBuilder, sceneBuilder, transformsBuilder } = useMemo(
     () => ({
       gridBuilder: new GridBuilder(),
       sceneBuilder: new SceneBuilder(),
       transformsBuilder: new TransformsBuilder(),
-      urdfBuilder: new UrdfBuilder(),
     }),
     [],
   );
@@ -852,7 +849,6 @@ export default function Layout({
                   selectedObject={selectedObject}
                   setMeasureInfo={setMeasureInfo}
                   showCrosshair={showCrosshair}
-                  targetPose={targetPose}
                   transforms={transforms}
                   renderFrameId={renderFrame.id}
                   fixedFrameId={fixedFrame.id}
